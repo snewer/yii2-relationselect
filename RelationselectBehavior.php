@@ -44,7 +44,7 @@ class RelationselectBehavior extends Behavior
 
     private function linkModels($models)
     {
-       // if (!$this->processLinking) return;
+        if (!$this->processLinking) return;
         foreach ($models as $model) {
             $this->owner->link($this->relationName, $model);
         }
@@ -52,7 +52,7 @@ class RelationselectBehavior extends Behavior
 
     private function unlinkModels($models, $delete = true)
     {
-      //  if (!$this->processLinking) return;
+        if (!$this->processLinking) return;
         foreach ($models as $model) {
             $this->owner->unlink($this->relationName, $model, $delete);
         }
