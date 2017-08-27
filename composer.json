@@ -1,0 +1,15 @@
+{
+    "name": "snewer/yii2-relationselect",
+    "authors": [
+        {
+            "name": "Kirill Kasyanov",
+            "email": "snewer0@gmail.com"
+        }
+    ],
+    "require": {},
+    "autoload": {
+        "psr-4": {
+            "snewer\\relationselect\\": ""
+        }
+    }
+}
