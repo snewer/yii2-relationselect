@@ -5,8 +5,8 @@ namespace snewer\relationselect;
 use Closure;
 use yii\base\Behavior;
 use yii\db\ActiveRecord;
-use yii\data\ActiveDataProvider;
 use yii\db\Expression;
+use yii\data\ActiveDataProvider;
 
 /**
  * @property ActiveRecord $owner
@@ -37,8 +37,8 @@ class RelationselectBehavior extends Behavior
     public function events()
     {
         return [
-            ActiveRecord::EVENT_BEFORE_INSERT => 'beforeSave',
-            ActiveRecord::EVENT_BEFORE_UPDATE => 'beforeSave'
+            ActiveRecord::EVENT_AFTER_INSERT => 'afterUpdateEventHandler',
+            ActiveRecord::EVENT_AFTER_UPDATE => 'afterUpdateEventHandler'
         ];
     }
 
@@ -74,7 +74,11 @@ class RelationselectBehavior extends Behavior
     public function getOldRelatedModels()
     {
         $models = $this->owner->{$this->relationName};
-        return is_array($models) ? $models : [$models];
+        if ($models) {
+            return is_array($models) ? $models : [$models];
+        } else {
+            return [];
+        }
     }
 
     private function getOldRelatedModelsIds($models)
@@ -100,7 +104,7 @@ class RelationselectBehavior extends Behavior
         return $this->_relationObject;
     }
 
-    public function beforeSave($event)
+    public function afterUpdateEventHandler($event)
     {
         $oldModels = $this->getOldRelatedModels();
         $newModels = $this->getNewRelatedModels();
