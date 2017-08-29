@@ -15,11 +15,17 @@ class Asset extends AssetBundle
     /**
      * @inheritdoc
      */
-    public $js = ['script.js'];
+    public $js = [
+        'script.js',
+        'yii.gridView.js'
+    ];
 
     /**
      * @inheritdoc
      */
-    public $depends = ['yii\web\JqueryAsset'];
+    public $depends = [
+        'yii\web\JqueryAsset',
+        'yii\web\YiiAsset'
+    ];
 
 }

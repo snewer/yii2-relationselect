@@ -1,68 +1,40 @@
-function relationselectWidget(selectInputId, pjaxContainerId)
-{
-    var selectInput = jQuery('#' + selectInputId);
-    var pjax = jQuery('#' + pjaxContainerId);
+function relationselectWidget(obj) {
 
-    var multiple = selectInput.prop('multiple');
+    var
+        $selectInput = jQuery('#' + obj.inputId),
+        $pjax = jQuery('#' + obj.pjaxId),
+        selectionInputSelector = '[name="' + obj.selectionInputName + '"]',
+        multiple = $selectInput.prop('multiple');
 
-    pjax.on('pjax:success', function(){
-        jQuery(this).find('[data-action=link]').each(function(){
-            var id = jQuery(this).data('id');
-            if (multiple) {
-                if (selectInput.val().indexOf(id + '') > -1) {
-                    jQuery(this).hide();
-                } else {
-                    jQuery(this).show();
-                }
-            } else {
-                if (id == selectInput.val()) {
-                    jQuery(this).hide();
-                } else {
-                    jQuery(this).show();
-                }
-            }
-        });
-        jQuery(this).find('[data-action=unlink]').each(function(){
-            var id = jQuery(this).data('id');
-            if (multiple) {
-                if (selectInput.val().indexOf(id + '') > -1) {
-                    jQuery(this).show();
-                } else {
-                    jQuery(this).hide();
-                }
-            } else {
-                if (id == selectInput.val()) {
-                    jQuery(this).show();
-                } else {
-                    jQuery(this).hide();
-                }
-            }
-        });
-    });
-
-    pjax.on('click', '[data-action=link]', function(){
-        var id = jQuery(this).data('id');
-        if (multiple) {
-            selectInput.append('<option value="' + id + '" selected>' + id + '</option>');
-            jQuery(this).hide().siblings('[data-action=unlink]').show();
-        } else {
-            selectInput.html('<option value="' + id + '" selected>' + id + '</option>');
-            pjax.find('[data-action=unlink]').hide();
-            pjax.find('[data-action=link]').show();
-            jQuery(this).hide().siblings('[data-action=unlink]').show();
+    $pjax.on('click', 'td:has(' + selectionInputSelector + ')', function(e) {
+        var input = $(this).find(selectionInputSelector);
+        if (e.target != input[0]) {
+            input.click();
         }
     });
 
-    pjax.on('click', '[data-action=unlink]', function(){
-        var id = jQuery(this).data('id');
+    $pjax.on('change', selectionInputSelector, function () {
+        var id = jQuery(this).val();
+        var checked = jQuery(this).prop('checked');
         if (multiple) {
-            selectInput.find('option[value=' + id + ']').remove();
-            jQuery(this).hide().siblings('[data-action=link]').show();
+            if (checked) {
+                $selectInput.append('<option value="' + id + '" selected>' + id + '</option>').trigger('change');
+            } else {
+                $selectInput.find('option[value=' + id + ']').remove().trigger('change');
+            }
         } else {
-            selectInput.html('');
-            pjax.find('[data-action=unlink]').hide();
-            pjax.find('[data-action=link]').show();
+            if (checked) {
+                $selectInput.html('<option value="' + id + '" selected>' + id + '</option>').trigger('change');
+            }
         }
+    });
+
+    $pjax.on('pjax:success', function () {
+        $pjax.find(selectionInputSelector).each(function () {
+            var id = jQuery(this).val();
+            var checked = multiple ? ($selectInput.val().indexOf(id + '') > -1) : (id == $selectInput.val());
+            jQuery(this).prop('checked', checked);
+        });
     });
 
 }

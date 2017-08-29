@@ -16,7 +16,7 @@
         } else if (typeof method === 'object' || !method) {
             return methods.init.apply(this, arguments);
         } else {
-            $.error('Method ' + method + ' does not exist in jQuery.yiiRelationselectGridView');
+            $.error('Method ' + method + ' does not exist in jQuery.yiiGridView');
             return false;
         }
     };
@@ -69,7 +69,7 @@
      * - checkRow, used for checking single row
      * - checkAllRows, used for checking all rows with according "Check all" checkbox
      *
-     * event is the name of event, for example: 'change.yiiRelationselectGridView'
+     * event is the name of event, for example: 'change.yiiGridView'
      * selector is a jQuery selector for finding elements
      *
      * @type {{}}
@@ -88,7 +88,7 @@
 
                 gridData[id] = $.extend(gridData[id], {settings: settings});
 
-                var filterEvents = 'change.yiiRelationselectGridView keydown.yiiRelationselectGridView';
+                var filterEvents = 'change.yiiGridView keydown.yiiGridView';
                 var enterPressed = false;
                 initEventHandler($e, 'filter', filterEvents, settings.filterSelector, function (event) {
                     if (event.type === 'keydown') {
@@ -149,14 +149,15 @@
                 url += settings.filterUrl.substring(hashPos);
             }
 
-            $grid.find('form.gridview-filter-form').remove();
+            var $body = $('body');
+            var formId = 'relationselectgridview-filter-form-' + $grid.attr('id');
+            $body.find('form#' + formId).remove();
             var $form = $('<form/>', {
                 action: url,
                 method: 'get',
-                'class': 'gridview-filter-form',
-                style: 'display:none',
-                'data-pjax': ''
-            }).appendTo($('body'));
+                id: formId,
+                style: 'display:none'
+            }).appendTo($body);
             $.each(data, function (name, values) {
                 $.each(values, function (index, value) {
                     $form.append($('<input/>').attr({type: 'hidden', name: name, value: value}));
@@ -176,8 +177,6 @@
 
             $link.click();
 
-            //$form.submit();
-
             $grid.trigger(gridEvents.afterFilter);
         },
 
@@ -194,10 +193,10 @@
             var checkAll = "#" + id + " input[name='" + options.checkAll + "']";
             var inputs = options['class'] ? "input." + options['class'] : "input[name='" + options.name + "']";
             var inputsEnabled = "#" + id + " " + inputs + ":enabled";
-            initEventHandler($grid, 'checkAllRows', 'click.yiiRelationselectGridView', checkAll, function () {
+            initEventHandler($grid, 'checkAllRows', 'click.yiiGridView', checkAll, function () {
                 $grid.find(inputs + ":enabled").prop('checked', this.checked);
             });
-            initEventHandler($grid, 'checkRow', 'click.yiiRelationselectGridView', inputsEnabled, function () {
+            initEventHandler($grid, 'checkRow', 'click.yiiGridView', inputsEnabled, function () {
                 var all = $grid.find(inputs).length == $grid.find(inputs + ":checked").length;
                 $grid.find("input[name='" + options.checkAll + "']").prop('checked', all);
             });
@@ -216,7 +215,7 @@
         },
 
         destroy: function () {
-            var events = ['.yiiRelationselectGridView', gridEvents.beforeFilter, gridEvents.afterFilter].join(' ');
+            var events = ['.yiiGridView', gridEvents.beforeFilter, gridEvents.afterFilter].join(' ');
             this.off(events);
 
             var id = $(this).attr('id');
@@ -240,7 +239,7 @@
      * the same type is removed even selector was changed.
      * @param {jQuery} $gridView According jQuery grid view element
      * @param {string} type Type of the event which acts like a key
-     * @param {string} event Event name, for example 'change.yiiRelationselectGridView'
+     * @param {string} event Event name, for example 'change.yiiGridView'
      * @param {string} selector jQuery selector
      * @param {function} callback The actual function to be executed with this event
      */
