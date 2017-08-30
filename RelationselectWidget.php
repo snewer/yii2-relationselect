@@ -2,14 +2,18 @@
 
 namespace snewer\relationselect;
 
+use Closure;
+use Yii;
 use yii\base\InvalidConfigException;
 use yii\helpers\Html;
 use yii\widgets\InputWidget;
 use yii\widgets\Pjax;
-use yii\grid\Column;
+use yii\grid\DataColumn;
+use yii\db\Expression;
+use yii\data\ActiveDataProvider;
 
 /**
- * @property RelationselectBehavior|\yii\db\ActiveRecord $model
+ * @property \yii\db\ActiveRecord $model
  */
 class RelationselectWidget extends InputWidget
 {
@@ -21,10 +25,6 @@ class RelationselectWidget extends InputWidget
     public $inputCellOptions = ['class' => 'text-center'];
 
     public $columns = [];
-
-    public $dataProvider;
-
-    public $searchModel;
 
     /**
      * Название атрибута (без []).
@@ -39,6 +39,10 @@ class RelationselectWidget extends InputWidget
     private $selectionInputName;
 
     private $pjaxId;
+
+    private $filterModel;
+
+    private $dataProvider;
 
     /**
      * RelationselectBehavior поведение, связанное атрибутом виджета.
@@ -61,6 +65,43 @@ class RelationselectWidget extends InputWidget
         }
     }
 
+    private function initFilterModel()
+    {
+        if ($this->behavior->filterModel) {
+            $this->filterModel = new $this->behavior->filterModel;
+            if (is_callable([$this->filterModel, 'search'])) {
+                $this->dataProvider = $this->filterModel->search(Yii::$app->request->queryParams);
+            } else {
+                throw new InvalidConfigException('Модель для фильтра должна иметь метод search.');
+            }
+
+        }
+    }
+
+    private function initDataProvider()
+    {
+        if ($this->dataProvider === null) {
+            $modelClass = $this->behavior->getRelation()->modelClass;
+            /* @var \yii\db\ActiveQuery $query */
+            $query = call_user_func([$modelClass, 'find']);
+            $modelsIds = $this->behavior->getOldRelatedModelsIds($this->behavior->getOldRelatedModels());
+            if ($modelsIds) {
+                $query->addOrderBy(new Expression('[[id]] IN (' . implode(', ', $modelsIds) . ') DESC'));
+            }
+            $this->dataProvider = new ActiveDataProvider([
+                'query' => $query,
+                'pagination' => [
+                    'pageSize' => 10
+                ]
+            ]);
+        }
+
+        if ($this->behavior->queryModifier instanceof Closure) {
+            call_user_func($this->behavior->queryModifier, $this->dataProvider->query);
+        }
+
+    }
+
     /**
      * @inheritdoc
      * @throws InvalidConfigException
@@ -74,6 +115,8 @@ class RelationselectWidget extends InputWidget
         $this->inputId = Html::getInputId($this->model, $this->attribute);
         $this->inputName = Html::getInputName($this->model, $this->attribute);
         $this->initBehavior();
+        $this->initFilterModel();
+        $this->initDataProvider();
         // Использовать виджет с небезопасным атрибутом нет смысла.
         if (!$this->model->isAttributeSafe($this->attributeName)) {
             throw new InvalidConfigException("Атрибут '{$this->attributeName}' должен быть безопасным.");
@@ -124,12 +167,21 @@ class RelationselectWidget extends InputWidget
 
     private function getSelectionColumn()
     {
+
+        $ids = implode(',', $this->getModelsIds());
+
         return [
-            'class' => Column::className(),
+            'class' => DataColumn::className(),
+            'attribute' => 'ids',
+            'header' => 'Выбор',
             'content' => function ($model, $key, $index) {
                 return $this->getSelectionInput($model->primaryKey);
             },
-            'contentOptions' => $this->inputCellOptions
+            'contentOptions' => $this->inputCellOptions,
+            'filter' => [
+                $ids => 'Выбрано',
+                '!' . $ids => 'Не выбрано',
+            ]
         ];
     }
 
@@ -163,10 +215,15 @@ class RelationselectWidget extends InputWidget
     private function registerJs()
     {
         Asset::register($this->view);
+        $idsFilterName = '';
+        if ($this->filterModel) {
+            $idsFilterName = Html::getInputName($this->filterModel, 'ids');
+        }
         $js = $this->removeNewlines("relationselectWidget({
             selectionInputName: '{$this->selectionInputName}',
             inputId: '{$this->inputId}',
-            pjaxId: '{$this->pjaxId}'
+            pjaxId: '{$this->pjaxId}',
+            idsFilterName: '$idsFilterName'
         });");
         $this->view->registerJs($js);
     }
@@ -189,11 +246,12 @@ class RelationselectWidget extends InputWidget
         echo Html::endTag('select');
         Pjax::begin([
             'id' => $this->pjaxId,
-            'timeout' => 5000
+            'timeout' => 5000,
+            'enablePushState' => false
         ]);
         echo RelationselectGridView::widget([
-            'dataProvider' => $this->dataProvider ?: $this->behavior->getRelationModelsDataProvider(),
-            'filterModel' => $this->searchModel,
+            'dataProvider' => $this->dataProvider,
+            'filterModel' => $this->filterModel,
             'columns' => $this->columns,
             'appendColumns' => $this->getSelectionColumn(),
             'firstRow' => function ($gridViewInstance) {

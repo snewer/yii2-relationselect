@@ -5,8 +5,6 @@ namespace snewer\relationselect;
 use Closure;
 use yii\base\Behavior;
 use yii\db\ActiveRecord;
-use yii\db\Expression;
-use yii\data\ActiveDataProvider;
 
 /**
  * @property ActiveRecord $owner
@@ -33,6 +31,11 @@ class RelationselectBehavior extends Behavior
      * @var bool
      */
     public $processLinking = true;
+
+    /**
+     * @var string
+     */
+    public $filterModel;
 
     public function events()
     {
@@ -81,7 +84,7 @@ class RelationselectBehavior extends Behavior
         }
     }
 
-    private function getOldRelatedModelsIds($models)
+    public function getOldRelatedModelsIds($models)
     {
         $ids = [];
         foreach ($models as $model) {
@@ -117,26 +120,6 @@ class RelationselectBehavior extends Behavior
         return array_udiff($aModels, $bModels, function (ActiveRecord $a, ActiveRecord $b) {
             return strnatcmp($a->primaryKey, $b->primaryKey);
         });
-    }
-
-    public function getRelationModelsDataProvider()
-    {
-        $modelClass = $this->getRelation()->modelClass;
-        /* @var \yii\db\ActiveQuery $query */
-        $query = call_user_func([$modelClass, 'find']);
-        $modelsIds = $this->getOldRelatedModelsIds($this->getOldRelatedModels());
-        if ($modelsIds) {
-            $query->addOrderBy(new Expression('[[id]] IN (' . implode(', ', $modelsIds) . ') DESC'));
-        }
-        if ($this->queryModifier instanceof Closure) {
-            call_user_func($this->queryModifier, $query);
-        }
-        return new ActiveDataProvider([
-            'query' => $query,
-            'pagination' => [
-                'pageSize' => 5
-            ]
-        ]);
     }
 
 }
