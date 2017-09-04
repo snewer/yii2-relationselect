@@ -100,6 +100,15 @@ class RelationselectWidget extends InputWidget
             call_user_func($this->behavior->queryModifier, $this->dataProvider->query);
         }
 
+        $queryParams = Yii::$app->request->queryParams;
+        if (isset($queryParams['sort'])) {
+            if (preg_match('/(-{0,1})ids,((\d+,{0,1})+)/', $queryParams['sort'], $matches)) {
+                $direction  = $matches[1] == '-' ? 'DESC' : 'ASC';
+                $ids = $matches[2];
+                $this->dataProvider->query->addOrderBy(new Expression("[[id]] IN ($ids) $direction"));
+            }
+        }
+
     }
 
     /**
@@ -170,10 +179,23 @@ class RelationselectWidget extends InputWidget
 
         $ids = implode(',', $this->getModelsIds());
 
+        $queryParams = Yii::$app->request->queryParams;
+        $direction = '-';
+        if (isset($queryParams['sort'])) {
+            if (preg_match('/-{0,1}ids,(\d+,{0,1})*/', $queryParams['sort'])) {
+                if (substr($queryParams['sort'], 0, 1) == '-') {
+                    $direction = '';
+                }
+            }
+        }
+        $queryParams[0] = Yii::$app->controller->route;
+        $queryParams['sort'] = $direction . 'ids,' . $ids;
+        $idsSortingUrl = Yii::$app->urlManager->createUrl($queryParams);
+
         return [
             'class' => DataColumn::className(),
             'attribute' => 'ids',
-            'header' => 'Выбор',
+            'header' => '<a class="ids-sorting" href="' . $idsSortingUrl . '">Выбор</a>',
             'content' => function ($model, $key, $index) {
                 return $this->getSelectionInput($model->primaryKey);
             },

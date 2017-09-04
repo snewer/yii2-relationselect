@@ -1,0 +1,16 @@
+
+.has-error .relationselect-widget .form-control {
+    border-color: inherit;
+}
+
+.has-success .relationselect-widget .form-control {
+    border-color: inherit;
+}
+
+.has-error-relationselect .form-control {
+    border-color: #ed5565 !important;
+}
+
+.has-error-relationselect .help-block {
+    color: #ed5565 !important;
+}

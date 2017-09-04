@@ -12,6 +12,10 @@ class Asset extends AssetBundle
      */
     public $sourcePath = '@vendor/snewer/yii2-relationselect/assets';
 
+    public $css = [
+        'style.css'
+    ];
+
     /**
      * @inheritdoc
      */
@@ -25,7 +29,8 @@ class Asset extends AssetBundle
      */
     public $depends = [
         'yii\web\JqueryAsset',
-        'yii\web\YiiAsset'
+        'yii\web\YiiAsset',
+        'yii\bootstrap\BootstrapAsset'
     ];
 
 }

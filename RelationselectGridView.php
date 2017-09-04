@@ -21,6 +21,10 @@ class RelationselectGridView extends GridView
      */
     public $firstRow;
 
+    public $options = ['class' => 'grid-view relationselect-widget'];
+
+    public $filterErrorClass = 'has-error-relationselect';
+
     /**
      * @inheritdoc
      */
@@ -42,12 +46,12 @@ class RelationselectGridView extends GridView
     public function renderTableBody()
     {
 
+        $firstRow = '';
         if ($this->firstRow instanceof Closure) {
             $firstRow = call_user_func($this->firstRow, $this);
-            $rows = $firstRow ? [$firstRow] : [];
-        } else {
-            $rows = [];
         }
+
+        $rows = [];
 
         // from parent:
 
@@ -76,9 +80,9 @@ class RelationselectGridView extends GridView
         if (empty($rows) && $this->emptyText !== false) {
             $colspan = count($this->columns);
 
-            return "<tbody>\n<tr><td colspan=\"$colspan\">" . $this->renderEmpty() . "</td></tr>\n</tbody>";
+            return "<tbody>$firstRow<tr><td colspan=\"$colspan\">" . $this->renderEmpty() . "</td></tr></tbody>";
         } else {
-            return "<tbody>\n" . implode("\n", $rows) . "\n</tbody>";
+            return "<tbody>$firstRow" . implode("\n", $rows) . "</tbody>";
         }
     }
 
@@ -107,6 +111,13 @@ class RelationselectGridView extends GridView
         $options = $this->options;
         $tag = ArrayHelper::remove($options, 'tag', 'div');
         echo Html::tag($tag, $content, $options);
+    }
+
+    public function renderFilters()
+    {
+        $filters = parent::renderFilters();
+        $filters = str_replace('has-error', $this->filterErrorClass, $filters);
+        return $filters;
     }
 
 }
