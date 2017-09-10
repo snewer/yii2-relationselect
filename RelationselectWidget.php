@@ -2,7 +2,6 @@
 
 namespace snewer\relationselect;
 
-use Closure;
 use Yii;
 use yii\base\InvalidConfigException;
 use yii\helpers\Html;
@@ -17,6 +16,8 @@ use yii\data\ActiveDataProvider;
  */
 class RelationselectWidget extends InputWidget
 {
+
+    public $filterInputOptions = ['class' => 'form-control', 'id' => null];
 
     public $inputTemplate = '{input}';
 
@@ -40,6 +41,7 @@ class RelationselectWidget extends InputWidget
 
     private $pjaxId;
 
+    /* @var \yii\base\Model */
     private $filterModel;
 
     private $dataProvider;
@@ -84,10 +86,6 @@ class RelationselectWidget extends InputWidget
             $modelClass = $this->behavior->getRelation()->modelClass;
             /* @var \yii\db\ActiveQuery $query */
             $query = call_user_func([$modelClass, 'find']);
-            $modelsIds = $this->behavior->getOldRelatedModelsIds($this->behavior->getOldRelatedModels());
-            if ($modelsIds) {
-                $query->addOrderBy(new Expression('[[id]] IN (' . implode(', ', $modelsIds) . ') DESC'));
-            }
             $this->dataProvider = new ActiveDataProvider([
                 'query' => $query,
                 'pagination' => [
@@ -96,18 +94,34 @@ class RelationselectWidget extends InputWidget
             ]);
         }
 
-        if ($this->behavior->queryModifier instanceof Closure) {
+        if (is_callable($this->behavior->queryModifier)) {
             call_user_func($this->behavior->queryModifier, $this->dataProvider->query);
         }
 
         $queryParams = Yii::$app->request->queryParams;
-        if (isset($queryParams['sort'])) {
-            if (preg_match('/(-{0,1})ids,((\d+,{0,1})+)/', $queryParams['sort'], $matches)) {
-                $direction  = $matches[1] == '-' ? 'DESC' : 'ASC';
-                $ids = $matches[2];
-                $this->dataProvider->query->addOrderBy(new Expression("[[id]] IN ($ids) $direction"));
+        if (isset($queryParams['ids'])) {
+            if (preg_match('/((?:\d+,?)+)/', $queryParams['ids'], $matches)) {
+                $ids = $matches[1];
+            } else {
+                $ids = '';
             }
+        } else {
+            $ids = implode(',', $this->getModelsIds());
         }
+        if ($ids) {
+            $this->dataProvider->sort->attributes['ids'] = [
+                'asc' => new Expression("[[id]] IN ($ids)"),
+                'desc' => new Expression("[[id]] NOT IN ($ids)"),
+                'default' => SORT_ASC
+            ];
+        } else {
+            $this->dataProvider->sort->attributes['ids'] = [
+                'asc' => ['id' => SORT_ASC],
+                'desc' => ['id' => SORT_DESC],
+                'default' => SORT_ASC
+            ];
+        }
+        $this->dataProvider->sort->defaultOrder = ['ids' => SORT_DESC];
 
     }
 
@@ -176,34 +190,18 @@ class RelationselectWidget extends InputWidget
 
     private function getSelectionColumn()
     {
-
-        $ids = implode(',', $this->getModelsIds());
-
-        $queryParams = Yii::$app->request->queryParams;
-        $direction = '-';
-        if (isset($queryParams['sort'])) {
-            if (preg_match('/-{0,1}ids,(\d+,{0,1})*/', $queryParams['sort'])) {
-                if (substr($queryParams['sort'], 0, 1) == '-') {
-                    $direction = '';
-                }
-            }
-        }
-        $queryParams[0] = Yii::$app->controller->route;
-        $queryParams['sort'] = $direction . 'ids,' . $ids;
-        $idsSortingUrl = Yii::$app->urlManager->createUrl($queryParams);
-
+        $options = array_merge(['prompt' => ''], $this->filterInputOptions);
+        $items = ['in' => 'Выбрано', 'not in' => 'Не выбрано'];
+        $filter = Html::activeDropDownList($this->filterModel, 'ids_operator', $items, $options);
+        $filter .= Html::activeHiddenInput($this->filterModel, 'ids', ['id' => null]);
         return [
             'class' => DataColumn::className(),
             'attribute' => 'ids',
-            'header' => '<a class="ids-sorting" href="' . $idsSortingUrl . '">Выбор</a>',
             'content' => function ($model, $key, $index) {
                 return $this->getSelectionInput($model->primaryKey);
             },
             'contentOptions' => $this->inputCellOptions,
-            'filter' => [
-                $ids => 'Выбрано',
-                '!' . $ids => 'Не выбрано',
-            ]
+            'filter' => $filter
         ];
     }
 
@@ -250,6 +248,20 @@ class RelationselectWidget extends InputWidget
         $this->view->registerJs($js);
     }
 
+    private function getGridView()
+    {
+        return RelationselectGridView::widget([
+            'dataProvider' => $this->dataProvider,
+            'filterModel' => $this->filterModel,
+            'columns' => $this->columns,
+            'appendColumns' => $this->getSelectionColumn(),
+            'firstRow' => function ($gridViewInstance) {
+                return $this->getFirstRow($gridViewInstance);
+            },
+            'sorter' => ''
+        ]);
+    }
+
     private function getHtml()
     {
         ob_start();
@@ -268,18 +280,10 @@ class RelationselectWidget extends InputWidget
         echo Html::endTag('select');
         Pjax::begin([
             'id' => $this->pjaxId,
-            'timeout' => 5000,
+            'timeout' => 30000,
             'enablePushState' => false
         ]);
-        echo RelationselectGridView::widget([
-            'dataProvider' => $this->dataProvider,
-            'filterModel' => $this->filterModel,
-            'columns' => $this->columns,
-            'appendColumns' => $this->getSelectionColumn(),
-            'firstRow' => function ($gridViewInstance) {
-                return $this->getFirstRow($gridViewInstance);
-            }
-        ]);
+        echo $this->getGridView();
         Pjax::end();
         return ob_get_clean();
     }

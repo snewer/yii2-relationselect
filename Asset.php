@@ -20,8 +20,7 @@ class Asset extends AssetBundle
      * @inheritdoc
      */
     public $js = [
-        'script.js',
-        'yii.gridView.js'
+        'script.js'
     ];
 
     /**

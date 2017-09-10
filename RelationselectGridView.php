@@ -102,7 +102,6 @@ class RelationselectGridView extends GridView
         if ($this->showOnEmpty || $this->dataProvider->getCount() > 0) {
             $content = preg_replace_callback("/{\\w+}/", function ($matches) {
                 $content = $this->renderSection($matches[0]);
-
                 return $content === false ? $matches[0] : $content;
             }, $this->layout);
         } else {
@@ -116,7 +115,7 @@ class RelationselectGridView extends GridView
     public function renderFilters()
     {
         $filters = parent::renderFilters();
-        $filters = str_replace('has-error', $this->filterErrorClass, $filters);
+        $filters = preg_replace('/\bhas-error\b/i', $this->filterErrorClass, $filters);
         return $filters;
     }
 
