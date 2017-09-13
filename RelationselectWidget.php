@@ -192,8 +192,12 @@ class RelationselectWidget extends InputWidget
     {
         $options = array_merge(['prompt' => ''], $this->filterInputOptions);
         $items = ['in' => 'Выбрано', 'not in' => 'Не выбрано'];
-        $filter = Html::activeDropDownList($this->filterModel, 'ids_operator', $items, $options);
-        $filter .= Html::activeHiddenInput($this->filterModel, 'ids', ['id' => null]);
+        if ($this->filterModel) {
+            $filter = Html::activeDropDownList($this->filterModel, 'ids_operator', $items, $options);
+            $filter .= Html::activeHiddenInput($this->filterModel, 'ids', ['id' => null]);
+        } else {
+            $filter = null;
+        }
         return [
             'class' => DataColumn::className(),
             'attribute' => 'ids',
