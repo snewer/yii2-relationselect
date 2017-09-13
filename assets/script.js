@@ -298,7 +298,11 @@ function relationselectWidget(obj) {
             var value = $selectInput.val();
             var ids;
             if (typeof value == 'object') {
-                ids = value.join(',');
+                if (value == null) {
+                    ids = '';
+                } else {
+                    ids = value.join(',');
+                }
             } else {
                 ids = value;
             }
