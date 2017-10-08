@@ -6,6 +6,7 @@
             "email": "snewer0@gmail.com"
         }
     ],
+    "type": "yii2-extension",
     "require": {},
     "autoload": {
         "psr-4": {

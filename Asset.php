@@ -10,7 +10,7 @@ class Asset extends AssetBundle
     /**
      * @inheritdoc
      */
-    public $sourcePath = '@vendor/snewer/yii2-relationselect/assets';
+    public $sourcePath = '@snewer/relationselect/assets';
 
     public $css = [
         'style.css'
